@@ -35,7 +35,7 @@ const D = {
   today_sub:        { en: 'Your checklist for today. Work top to bottom.', gr: 'Η λίστα σας για σήμερα. Ακολουθήστε τη σειρά.' },
   today_greeting:   { en: 'Good day', gr: 'Καλή μέρα' },
   step_shipments:   { en: 'Import the shipment file (File 1)', gr: 'Εισαγωγή αρχείου αποστολών (Αρχείο 1)' },
-  step_shipments_d: { en: 'Upload yesterday’s ACS shipment export.', gr: 'Ανεβάστε το χθεσινό αρχείο αποστολών ACS.' },
+  step_shipments_d: { en: 'Upload the month-to-date ACS file (1st of the month to today).', gr: 'Ανεβάστε το αρχείο ACS του μήνα (από 1η του μήνα έως σήμερα).' },
   step_payments:    { en: 'Import the Cash / Visa payments (File 2)', gr: 'Εισαγωγή πληρωμών Μετρητά / Κάρτα (Αρχείο 2)' },
   step_payments_d:  { en: 'Upload the ACS Notification of Payment file when it arrives.', gr: 'Ανεβάστε το αρχείο πληρωμών ACS όταν το λάβετε.' },
   step_cheques:     { en: 'Enter any cheques', gr: 'Καταχώρηση επιταγών' },
@@ -69,9 +69,9 @@ const D = {
 
   // Import
   import_title:    { en: 'Import', gr: 'Εισαγωγή' },
-  import_sub:      { en: 'Upload the daily shipment export and the ACS payment notifications. Matching happens automatically by tracking number.', gr: 'Ανεβάστε το ημερήσιο αρχείο αποστολών και τις ειδοποιήσεις πληρωμής ACS. Η αντιστοίχιση γίνεται αυτόματα με τον αριθμό αποστολής.' },
+  import_sub:      { en: 'Upload the month-to-date shipment file (1st of the month to today) and the ACS payment notifications. Re-uploading updates existing shipments and adds new ones — matching by tracking number.', gr: 'Ανεβάστε το αρχείο αποστολών του μήνα (από 1η του μήνα έως σήμερα) και τις ειδοποιήσεις πληρωμής ACS. Η επανεισαγωγή ενημερώνει τις υπάρχουσες αποστολές και προσθέτει νέες — με βάση τον αριθμό αποστολής.' },
   file1_title:     { en: 'File 1 — Shipments', gr: 'Αρχείο 1 — Αποστολές' },
-  file1_sub:       { en: 'ΑΝΑΖΗΤΗΣΗ ΑΠΟΣΤΟΛΩΝ · daily ACS export', gr: 'ΑΝΑΖΗΤΗΣΗ ΑΠΟΣΤΟΛΩΝ · ημερήσιο αρχείο ACS' },
+  file1_sub:       { en: 'ΑΝΑΖΗΤΗΣΗ ΑΠΟΣΤΟΛΩΝ · month-to-date ACS export', gr: 'ΑΝΑΖΗΤΗΣΗ ΑΠΟΣΤΟΛΩΝ · αρχείο ACS του μήνα' },
   file2_title:     { en: 'File 2 — Cash / Visa payments', gr: 'Αρχείο 2 — Πληρωμές Μετρητά / Κάρτα' },
   file2_sub:       { en: 'ACS Notification of Payment', gr: 'Ειδοποίηση Πληρωμής ACS' },
   dropHere:        { en: 'Drop file here or click to browse', gr: 'Σύρετε το αρχείο ή κάντε κλικ για επιλογή' },
