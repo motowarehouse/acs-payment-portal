@@ -15,6 +15,7 @@ import {
   Users,
   LogOut,
   BookOpen,
+  PlayCircle,
   ChevronRight,
 } from 'lucide-react'
 import { useT } from '@/components/i18n/LocaleProvider'
@@ -23,6 +24,7 @@ import type { TKey } from '@/lib/i18n'
 
 const NAV: { href: string; icon: React.ElementType; key: TKey }[] = [
   { href: '/',            icon: Home,            key: 'nav_home' },
+  { href: '/guide',       icon: PlayCircle,      key: 'nav_guide' },
   { href: '/dashboard',   icon: LayoutDashboard, key: 'nav_dashboard' },
   { href: '/import',      icon: Upload,          key: 'nav_import' },
   { href: '/cheques',     icon: Receipt,         key: 'nav_cheques' },
