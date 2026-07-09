@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Direction of a shipment relative to Motowarehouse ──────────────
+enum Direction {
+  OUTBOUND // we are the sender → goes to a client (COD we collect)
+  INBOUND  // we are the recipient → comes to us (informational)
+}
+
+// ─── Lifecycle of a shipment ────────────────────────────────────────
+enum ShipmentStatus {
+  AWAITING       // outbound with COD > 0, no payment yet
+  PARTIALLY_PAID // some payments recorded, sum < COD
+  PAID           // payments sum == COD
+  RETURNED       // package not collected, returned to us
+  EXCEPTION      // overpaid, or otherwise needs review
+  NO_COD         // COD == 0 or inbound → nothing to reconcile
+}
+
+enum PaymentMethod {
+  ACS    // collected by ACS as cash and/or visa (File 2 does not split the two)
+  CASH
+  VISA
+  CHEQUE
+}
+
+enum PaymentSource {
+  IMPORT        // came from a File 2 (Notification of Payment) import
+  MANUAL_CHEQUE // typed in via the cheque form
+  MANUAL        // any other manual adjustment
+}
+
+enum ImportType {
+  SHIPMENTS // File 1
+  PAYMENTS  // File 2
+}
+
+// ─── A single upload event (File 1 or File 2) ───────────────────────
+model ImportBatch {
+  id             String     @id @default(cuid())
+  type           ImportType
+  filename       String
+  uploadedAt     DateTime   @default(now())
+  uploadedBy     String?
+  totalRows      Int        @default(0)
+  createdCount   Int        @default(0) // new records inserted
+  updatedCount   Int        @default(0) // existing records updated
+  matchedCount   Int        @default(0) // payments matched to a shipment
+  unmatchedCount Int        @default(0) // payments with no shipment
+  duplicateCount Int        @default(0) // duplicate tracking numbers in the file
+  notes          String?    @db.Text
+
+  shipments Shipment[]
+  payments  Payment[]
+}
+
+// ─── One ACS shipment (row of File 1) ───────────────────────────────
+model Shipment {
+  id             String         @id @default(cuid())
+  trackingNumber String         @unique // Αριθμός Αποδεικτικού
+  pickupDate     DateTime? // Ημ/νια Παραλαβής
+  deliveredAt    DateTime? // Ημ. Ώρα (delivery timestamp)
+  routeCode      String? // Από/Προς e.g. NI-XF
+  direction      Direction      @default(OUTBOUND)
+  recipientName  String? // Παραλήπτης (may include a leading customer code)
+  recipientCode  String? // parsed leading code, e.g. 152
+  receiverPerson String? // Παραλαβών
+  sender         String? // Αποστολέας
+  productCodes   String? // Προϊοντα
+  codAmount      Decimal        @default(0) @db.Decimal(10, 2) // Ποσό Αντικαταβολής
+  pieces         Int?
+  weight         Float?
+  reason         String? // Αιτία
+  remarks        String? // Παρατηρήσεις
+  status         ShipmentStatus @default(AWAITING)
+  statusManual   Boolean        @default(false) // true once a user overrides status
+  isDuplicate    Boolean        @default(false) // flagged: appeared more than once on import
+  notes          String?        @db.Text
+  raw            Json? // full original row for reference
+
+  importBatchId String?
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([direction])
+  @@index([recipientCode])
+  @@index([pickupDate])
+}
+
+// ─── One payment line against a shipment (split-tender aware) ────────
+model Payment {
+  id           String        @id @default(cuid())
+  method       PaymentMethod
+  amount       Decimal       @db.Decimal(10, 2)
+  paymentDate  DateTime? // when ACS/customer paid
+  deliveryDate DateTime? // delivery date on the notification
+  source       PaymentSource @default(IMPORT)
+
+  // cheque-specific fields (null for cash/visa)
+  bank         String?
+  chequeNumber String? // Αρ. Επιταγής
+  reference    String? // free reference
+
+  // matching
+  trackingNumber String // AWB from the payment file (kept even if unmatched)
+  shipmentId     String?
+  shipment       Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+
+  importBatchId String?
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  @@index([shipmentId])
+  @@index([trackingNumber])
+  @@index([method])
+}
