@@ -93,8 +93,9 @@ model Shipment {
   notes          String?        @db.Text
   raw            Json? // full original row for reference
 
-  importBatchId String?
+  importBatchId String? // the import that last touched this shipment
   importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  originBatchId String? // the import that first created this shipment (used for safe undo)
 
   payments Payment[]
 

@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { getLocale } from '@/lib/locale'
+import { t } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import ChequeEntry from '@/components/cheques/ChequeEntry'
 import { formatEuro, formatDate } from '@/lib/utils'
@@ -6,6 +8,7 @@ import { formatEuro, formatDate } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 
 export default async function ChequesPage() {
+  const tr = t(getLocale())
   const cheques = await prisma.payment.findMany({
     where: { method: 'CHEQUE' },
     orderBy: { createdAt: 'desc' },
@@ -15,24 +18,21 @@ export default async function ChequesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Cheques"
-        subtitle="Record cheque payments that arrive physically with the ACS cheque list."
-      />
+      <PageHeader title={tr('cheques_title')} subtitle={tr('cheques_sub')} />
 
       <ChequeEntry />
 
       <div className="panel animate-fade-up" style={{ marginTop: 24, overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #EEF1F3' }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#001A21' }}>Recent cheques</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#001A21' }}>{tr('recentCheques')}</p>
         </div>
         {cheques.length === 0 ? (
-          <p style={{ padding: '24px 18px', fontSize: 13, color: '#8A939B' }}>No cheques recorded yet.</p>
+          <p style={{ padding: '24px 18px', fontSize: 13, color: '#8A939B' }}>{tr('noCheques')}</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#FAFBFC' }}>
-                {['Tracking', 'Recipient', 'Bank', 'Cheque no.', 'Amount', 'Date'].map((h) => (
+                {[tr('col_tracking'), tr('recipient'), tr('bank'), tr('chequeNo'), tr('amount'), tr('paymentDate')].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
@@ -56,8 +56,5 @@ export default async function ChequesPage() {
   )
 }
 
-const thStyle: React.CSSProperties = {
-  textAlign: 'left', padding: '9px 16px', fontSize: 10.5, fontWeight: 700,
-  textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B',
-}
+const thStyle: React.CSSProperties = { textAlign: 'left', padding: '9px 16px', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B' }
 const tdStyle: React.CSSProperties = { padding: '11px 16px', fontSize: 12.5, color: '#1A2226' }

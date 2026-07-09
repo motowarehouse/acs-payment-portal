@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       updated++
     } else {
       await prisma.shipment.create({
-        data: { trackingNumber: row.trackingNumber, ...common },
+        data: { trackingNumber: row.trackingNumber, originBatchId: batch.id, ...common },
       })
       created++
     }

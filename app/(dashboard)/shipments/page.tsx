@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma, ShipmentStatus, Direction } from '@prisma/client'
+import { getLocale } from '@/lib/locale'
+import { t } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import FilterBar from '@/components/shipments/FilterBar'
 import ShipmentsTable from '@/components/shipments/ShipmentsTable'
@@ -11,6 +13,8 @@ export default async function ShipmentsPage({
 }: {
   searchParams: { status?: string; direction?: string; q?: string }
 }) {
+  const locale = getLocale()
+  const tr = t(locale)
   const where: Prisma.ShipmentWhereInput = {}
 
   if (searchParams.status) where.status = searchParams.status as ShipmentStatus
@@ -23,6 +27,7 @@ export default async function ShipmentsPage({
       { recipientCode: { contains: q, mode: 'insensitive' } },
     ]
   }
+  const filtered = Boolean(searchParams.status || searchParams.direction || searchParams.q)
 
   const shipments = await prisma.shipment.findMany({
     where,
@@ -33,12 +38,9 @@ export default async function ShipmentsPage({
 
   return (
     <div>
-      <PageHeader
-        title="Shipments"
-        subtitle={`${shipments.length} shown · click a tracking number to view and reconcile`}
-      />
+      <PageHeader title={tr('ship_title')} subtitle={`${shipments.length} ${tr('ship_shown')}`} />
       <FilterBar />
-      <ShipmentsTable shipments={shipments} />
+      <ShipmentsTable shipments={shipments} locale={locale} filtered={filtered} />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search, CheckCircle2, AlertTriangle, Loader2, Receipt } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
 import { STATUS_META } from '@/lib/constants'
+import { useT, useLocale } from '@/components/i18n/LocaleProvider'
 import type { ShipmentStatus } from '@prisma/client'
 
 interface Found {
@@ -18,6 +19,8 @@ interface Found {
 
 export default function ChequeEntry() {
   const router = useRouter()
+  const tr = useT()
+  const locale = useLocale()
   const [tracking, setTracking] = useState('')
   const [looking, setLooking] = useState(false)
   const [found, setFound] = useState<Found | null>(null)
@@ -33,11 +36,7 @@ export default function ChequeEntry() {
 
   async function lookup() {
     if (!tracking.trim()) return
-    setLooking(true)
-    setFound(null)
-    setNotFound(false)
-    setDone(null)
-    setError(null)
+    setLooking(true); setFound(null); setNotFound(false); setDone(null); setError(null)
     try {
       const res = await fetch(`/api/shipments/lookup?tracking=${encodeURIComponent(tracking.trim())}`)
       const json = await res.json()
@@ -45,9 +44,7 @@ export default function ChequeEntry() {
         setFound(json.shipment)
         const remaining = Math.max(json.shipment.codAmount - json.shipment.paidSum, 0)
         setAmount(remaining ? remaining.toFixed(2) : '')
-      } else {
-        setNotFound(true)
-      }
+      } else setNotFound(true)
     } catch {
       setError('Lookup failed. Please try again.')
     } finally {
@@ -56,28 +53,20 @@ export default function ChequeEntry() {
   }
 
   async function submit() {
-    setSaving(true)
-    setError(null)
+    setSaving(true); setError(null)
     try {
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trackingNumber: tracking.trim(),
-          amount: Number(amount),
-          method: 'CHEQUE',
-          bank,
-          chequeNumber,
-          paymentDate: paymentDate || undefined,
-        }),
+        body: JSON.stringify({ trackingNumber: tracking.trim(), amount: Number(amount), method: 'CHEQUE', bank, chequeNumber, paymentDate: paymentDate || undefined }),
       })
       const json = await res.json()
       if (!res.ok) {
         setError(json.error || 'Could not save the cheque.')
       } else {
-        setDone(json.status ? `Cheque recorded. Shipment is now ${STATUS_META[json.status as ShipmentStatus].label}.` : 'Cheque recorded (no matching shipment — see Exceptions).')
-        setBank(''); setChequeNumber(''); setAmount(''); setPaymentDate('')
-        setFound(null); setTracking('')
+        const statusName = json.status ? (locale === 'gr' ? STATUS_META[json.status as ShipmentStatus].labelGr : STATUS_META[json.status as ShipmentStatus].label) : null
+        setDone(statusName ? `${tr('recordCheque')} ✓  (${statusName})` : `${tr('recordCheque')} ✓`)
+        setBank(''); setChequeNumber(''); setAmount(''); setPaymentDate(''); setFound(null); setTracking('')
         router.refresh()
       }
     } catch {
@@ -96,34 +85,24 @@ export default function ChequeEntry() {
           <Receipt size={19} color="#7C3AED" strokeWidth={1.8} />
         </div>
         <div>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#001A21' }}>Record a cheque payment</p>
-          <p style={{ fontSize: 11.5, color: '#8A939B', marginTop: 1 }}>Enter the shipment tracking number, then the cheque details</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#001A21' }}>{tr('cheque_card')}</p>
+          <p style={{ fontSize: 11.5, color: '#8A939B', marginTop: 1 }}>{tr('cheque_card_sub')}</p>
         </div>
       </div>
 
       <div style={{ padding: 18 }}>
-        {/* Tracking lookup */}
-        <label className="label-base">Tracking number (POD Δ.Δ.)</label>
+        <label className="label-base">{tr('trackingLabel')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            className="input-base"
-            value={tracking}
-            onChange={(e) => setTracking(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && lookup()}
-            placeholder="e.g. 9601869524"
-          />
+          <input className="input-base" value={tracking} onChange={(e) => setTracking(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && lookup()} placeholder="9601869524" />
           <button className="btn-ghost" onClick={lookup} disabled={looking} style={{ flexShrink: 0 }}>
-            {looking ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-            Find
+            {looking ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} {tr('find')}
           </button>
         </div>
 
         {notFound && (
           <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-start', background: 'rgba(183,121,31,0.08)', border: '1px solid rgba(183,121,31,0.25)', borderRadius: 4, padding: '10px 12px' }}>
             <AlertTriangle size={14} color="#B7791F" style={{ flexShrink: 0, marginTop: 1 }} />
-            <p style={{ fontSize: 12, color: '#8A5D18' }}>
-              No shipment found with that tracking number. You can still record the cheque; it will appear under Exceptions until a matching shipment is imported.
-            </p>
+            <p style={{ fontSize: 12, color: '#8A5D18' }}>{tr('chequeNotFound')}</p>
           </div>
         )}
 
@@ -131,36 +110,34 @@ export default function ChequeEntry() {
           <div style={{ marginTop: 12, background: '#FAFBFC', border: '1px solid #EEF1F3', borderRadius: 5, padding: '12px 14px' }} className="animate-fade-up">
             <p style={{ fontSize: 13, fontWeight: 700, color: '#001A21' }}>{found.recipientName || '—'}</p>
             <div style={{ display: 'flex', gap: 20, marginTop: 8 }}>
-              <Metric label="COD" value={formatEuro(found.codAmount)} />
-              <Metric label="Paid so far" value={formatEuro(found.paidSum)} />
-              <Metric label="Remaining" value={formatEuro(remaining)} accent={remaining > 0 ? '#B7791F' : '#2F8F5B'} />
+              <Metric label={tr('cod')} value={formatEuro(found.codAmount)} />
+              <Metric label={tr('paidSoFar')} value={formatEuro(found.paidSum)} />
+              <Metric label={tr('remaining')} value={formatEuro(remaining)} accent={remaining > 0 ? '#B7791F' : '#2F8F5B'} />
             </div>
           </div>
         )}
 
-        {/* Cheque fields (enabled once looked up, or always for unmatched) */}
         {(found || notFound) && (
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="animate-fade-up">
             <div>
-              <label className="label-base">Bank</label>
-              <input className="input-base" value={bank} onChange={(e) => setBank(e.target.value)} placeholder="e.g. EUROBANK" />
+              <label className="label-base">{tr('bank')}</label>
+              <input className="input-base" value={bank} onChange={(e) => setBank(e.target.value)} placeholder="EUROBANK" />
             </div>
             <div>
-              <label className="label-base">Cheque number (Αρ. Επιταγής)</label>
-              <input className="input-base" value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} placeholder="e.g. E_92450477" />
+              <label className="label-base">{tr('chequeNo')}</label>
+              <input className="input-base" value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} placeholder="E_92450477" />
             </div>
             <div>
-              <label className="label-base">Amount (€)</label>
+              <label className="label-base">{tr('amount')}</label>
               <input className="input-base" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
             </div>
             <div>
-              <label className="label-base">Payment date</label>
+              <label className="label-base">{tr('paymentDate')}</label>
               <input className="input-base" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
             </div>
             <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
               <button className="btn-primary" onClick={submit} disabled={saving || !amount}>
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Receipt size={14} />}
-                Record cheque
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Receipt size={14} />} {tr('recordCheque')}
               </button>
             </div>
           </div>

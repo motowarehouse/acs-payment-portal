@@ -12,6 +12,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
+import { useT } from '@/components/i18n/LocaleProvider'
 
 type Kind = 'shipments' | 'payments'
 
@@ -39,21 +40,22 @@ interface PaymentResult {
 }
 
 export default function ImportClient() {
+  const tr = useT()
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
       <UploadCard
         kind="shipments"
         icon={PackageSearch}
-        title="File 1 — Shipments"
-        subtitle="ΑΝΑΖΗΤΗΣΗ ΑΠΟΣΤΟΛΩΝ · daily ACS export"
+        title={tr('file1_title')}
+        subtitle={tr('file1_sub')}
         accept=".xlsx,.xls"
         endpoint="/api/import/shipments"
       />
       <UploadCard
         kind="payments"
         icon={Wallet}
-        title="File 2 — Cash / Visa payments"
-        subtitle="ACS Notification of Payment"
+        title={tr('file2_title')}
+        subtitle={tr('file2_sub')}
         accept=".xls,.xlsx"
         endpoint="/api/import/payments"
       />
@@ -77,6 +79,7 @@ function UploadCard({
   endpoint: string
 }) {
   const router = useRouter()
+  const tr = useT()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -146,9 +149,9 @@ function UploadCard({
             <UploadCloud size={26} color="#009BB4" strokeWidth={1.6} style={{ margin: '0 auto' }} />
           )}
           <p style={{ fontSize: 13, fontWeight: 600, color: '#445056', marginTop: 10 }}>
-            {busy ? 'Importing…' : 'Drop file here or click to browse'}
+            {busy ? tr('importing') : tr('dropHere')}
           </p>
-          <p style={{ fontSize: 11, color: '#A6AEB2', marginTop: 3 }}>Excel file ({accept})</p>
+          <p style={{ fontSize: 11, color: '#A6AEB2', marginTop: 3 }}>{tr('excelFile')} ({accept})</p>
           {filename && !busy && (
             <p style={{ fontSize: 11, color: '#667079', marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <FileSpreadsheet size={12} /> {filename}

@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { getLocale } from '@/lib/locale'
+import { t } from '@/lib/i18n'
 import { toNumber, formatEuro } from '@/lib/utils'
 import { OUTSTANDING_STATUSES } from '@/lib/constants'
 import PageHeader from '@/components/ui/PageHeader'
@@ -17,6 +19,7 @@ interface CustomerAgg {
 }
 
 export default async function CustomersPage() {
+  const tr = t(getLocale())
   // Only outbound COD shipments concern customer balances
   const shipments = await prisma.shipment.findMany({
     where: { direction: 'OUTBOUND', codAmount: { gt: 0 } },
@@ -59,19 +62,19 @@ export default async function CustomersPage() {
 
   return (
     <div>
-      <PageHeader title="Customers" subtitle={`${customers.length} customers with COD shipments`} />
+      <PageHeader title={tr('cust_title')} subtitle={`${customers.length} ${tr('cust_sub')}`} />
 
       {customers.length === 0 ? (
         <div className="panel" style={{ padding: '40px 18px', textAlign: 'center' }}>
-          <p style={{ fontSize: 13, color: '#8A939B' }}>No COD shipments imported yet.</p>
+          <p style={{ fontSize: 13, color: '#8A939B' }}>{tr('cust_empty')}</p>
         </div>
       ) : (
         <div className="panel animate-fade-up" style={{ overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#FAFBFC' }}>
-                {['Customer', 'Code', 'Shipments', 'COD total', 'Collected', 'Outstanding'].map((h) => (
-                  <th key={h} style={{ ...th, textAlign: h === 'Customer' || h === 'Code' ? 'left' : 'right' }}>{h}</th>
+                {[tr('col_customer'), tr('col_code'), tr('col_shipments'), tr('col_codtotal'), tr('col_collected'), tr('col_outstanding')].map((h, i) => (
+                  <th key={h} style={{ ...th, textAlign: i < 2 ? 'left' : 'right' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -91,7 +94,7 @@ export default async function CustomersPage() {
             </tbody>
             <tfoot>
               <tr style={{ borderTop: '2px solid #E7EAED', background: '#FAFBFC' }}>
-                <td style={{ ...td, fontWeight: 700 }} colSpan={3}>Total</td>
+                <td style={{ ...td, fontWeight: 700 }} colSpan={3}>{tr('total')}</td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 900 }}>{formatEuro(totals.cod)}</td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 900, color: '#2F8F5B' }}>{formatEuro(totals.collected)}</td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 900, color: '#B7791F' }}>{formatEuro(totals.outstanding)}</td>

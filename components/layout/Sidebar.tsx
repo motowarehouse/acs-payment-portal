@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
+  Home,
   Upload,
   Receipt,
   PackageSearch,
@@ -15,15 +16,19 @@ import {
   LogOut,
   ChevronRight,
 } from 'lucide-react'
+import { useT } from '@/components/i18n/LocaleProvider'
+import LanguageToggle from '@/components/i18n/LanguageToggle'
+import type { TKey } from '@/lib/i18n'
 
-const NAV = [
-  { href: '/',            icon: LayoutDashboard, label: 'Dashboard',   labelGr: 'Αρχική'      },
-  { href: '/import',      icon: Upload,          label: 'Import',      labelGr: 'Εισαγωγή'    },
-  { href: '/cheques',     icon: Receipt,         label: 'Cheques',     labelGr: 'Επιταγές'    },
-  { href: '/shipments',   icon: PackageSearch,   label: 'Shipments',   labelGr: 'Αποστολές'   },
-  { href: '/outstanding', icon: Wallet,          label: 'Outstanding', labelGr: 'Οφειλές'     },
-  { href: '/exceptions',  icon: AlertTriangle,   label: 'Exceptions',  labelGr: 'Έλεγχος'     },
-  { href: '/customers',   icon: Users,           label: 'Customers',   labelGr: 'Πελάτες'     },
+const NAV: { href: string; icon: React.ElementType; key: TKey }[] = [
+  { href: '/',            icon: Home,            key: 'nav_home' },
+  { href: '/dashboard',   icon: LayoutDashboard, key: 'nav_dashboard' },
+  { href: '/import',      icon: Upload,          key: 'nav_import' },
+  { href: '/cheques',     icon: Receipt,         key: 'nav_cheques' },
+  { href: '/shipments',   icon: PackageSearch,   key: 'nav_shipments' },
+  { href: '/outstanding', icon: Wallet,          key: 'nav_outstanding' },
+  { href: '/exceptions',  icon: AlertTriangle,   key: 'nav_exceptions' },
+  { href: '/customers',   icon: Users,           key: 'nav_customers' },
 ]
 
 const OCEAN: React.CSSProperties = {
@@ -35,6 +40,7 @@ const OCEAN: React.CSSProperties = {
 
 export default function Sidebar() {
   const path = usePathname()
+  const tr = useT()
 
   return (
     <aside
@@ -78,13 +84,13 @@ export default function Sidebar() {
             margin: 0,
           }}
         >
-          ACS Payments
+          {tr('brandSub')}
         </p>
       </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {NAV.map(({ href, icon: Icon, label, labelGr }) => {
+        {NAV.map(({ href, icon: Icon, key }) => {
           const active = href === '/' ? path === '/' : path.startsWith(href)
           return (
             <Link
@@ -108,8 +114,7 @@ export default function Sidebar() {
               }
             >
               <Icon size={15} strokeWidth={active ? 2 : 1.5} />
-              <span style={{ flex: 1 }}>{label}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>{labelGr}</span>
+              <span style={{ flex: 1 }}>{tr(key)}</span>
               {active && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
             </Link>
           )
@@ -118,11 +123,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ padding: '6px 12px', marginBottom: 4 }}>
-          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 300, letterSpacing: '0.02em' }}>
-            Motowarehouse Ltd
-          </p>
-        </div>
+        <LanguageToggle />
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           style={
@@ -140,6 +141,7 @@ export default function Sidebar() {
               cursor: 'pointer',
               fontFamily: 'inherit',
               transition: 'color 0.15s',
+              marginTop: 4,
             } as React.CSSProperties
           }
           onMouseEnter={(e) => {
@@ -150,7 +152,7 @@ export default function Sidebar() {
           }}
         >
           <LogOut size={15} strokeWidth={1.5} />
-          <span>Sign Out</span>
+          <span>{tr('signOut')}</span>
         </button>
       </div>
     </aside>
