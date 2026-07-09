@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Users,
   LogOut,
+  BookOpen,
   ChevronRight,
 } from 'lucide-react'
 import { useT } from '@/components/i18n/LocaleProvider'
@@ -123,6 +124,35 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <a
+          href="/ACS_Portal_User_Manual.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={
+            {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              padding: '9px 12px',
+              borderRadius: 3,
+              fontSize: 13,
+              color: 'rgba(255,255,255,0.55)',
+              textDecoration: 'none',
+              transition: 'color 0.15s',
+              marginBottom: 2,
+            } as React.CSSProperties
+          }
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLElement).style.color = 'white'
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.55)'
+          }}
+        >
+          <BookOpen size={15} strokeWidth={1.5} />
+          <span>{tr('nav_manual')}</span>
+        </a>
         <LanguageToggle />
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}

@@ -17,6 +17,7 @@ const D = {
   nav_customers:   { en: 'Customers',           gr: 'Πελάτες' },
   signOut:         { en: 'Sign Out',            gr: 'Αποσύνδεση' },
   language:        { en: 'Language',            gr: 'Γλώσσα' },
+  nav_manual:      { en: 'User manual',         gr: 'Εγχειρίδιο' },
 
   // Common
   apply:      { en: 'Apply',      gr: 'Εφαρμογή' },
