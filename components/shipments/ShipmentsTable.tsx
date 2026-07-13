@@ -60,4 +60,5 @@ export default function ShipmentsTable({ shipments, locale = 'en', filtered = fa
   )
 }
 
-const thStyle: React.CSSProperties = { textAlign: 'left', padding: '10px 16px', fontSize:
+const thStyle: React.CSSProperties = { textAlign: 'left', padding: '10px 16px', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B' }
+const tdStyle: React.CSSProperties = { padding: '11px 16px', fontSize: 12.5, color: '#1A2226' }

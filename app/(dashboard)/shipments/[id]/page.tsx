@@ -84,4 +84,22 @@ export default async function ShipmentDetail({ params }: { params: { id: string 
         payments={shipment.payments.map((p) => ({
           id: p.id,
           method: p.method,
-          amount: t
+          amount: toNumber(p.amount),
+          bank: p.bank,
+          chequeNumber: p.chequeNumber,
+          chequeStatus: p.chequeStatus,
+          paymentDate: p.paymentDate ? p.paymentDate.toISOString() : null,
+          source: p.source,
+          createdBy: p.createdBy,
+        }))}
+        history={history.map((h) => ({
+          id: h.id,
+          at: h.at.toISOString(),
+          user: h.user,
+          action: h.action,
+          detail: h.detail,
+        }))}
+      />
+    </div>
+  )
+}
