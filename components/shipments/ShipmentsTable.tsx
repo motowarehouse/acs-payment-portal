@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { formatEuro, formatDate, toNumber } from '@/lib/utils'
+import { formatEuro, formatDate, toNumber, paidSum } from '@/lib/utils'
 import { StatusBadge, DirectionBadge } from '@/components/ui/Badges'
+import CopyButton from '@/components/ui/CopyButton'
 import { t, type Locale } from '@/lib/i18n'
 import type { Shipment, Payment } from '@prisma/client'
 import { Upload } from 'lucide-react'
@@ -35,13 +36,14 @@ export default function ShipmentsTable({ shipments, locale = 'en', filtered = fa
         </thead>
         <tbody>
           {shipments.map((s) => {
-            const paid = s.payments.reduce((sum, p) => sum + toNumber(p.amount), 0)
+            const paid = paidSum(s.payments)
             return (
               <tr key={s.id} style={{ borderTop: '1px solid #F2F4F6' }}>
-                <td style={tdStyle}>
+                <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
                   <Link href={`/shipments/${s.id}`} style={{ fontFamily: 'monospace', fontSize: 12, color: '#009BB4', textDecoration: 'none', fontWeight: 700 }}>
                     {s.trackingNumber}
                   </Link>
+                  <CopyButton text={s.trackingNumber} title={tr('copyTracking')} copiedTitle={tr('copied')} />
                 </td>
                 <td style={{ ...tdStyle, color: '#1A2226', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.recipientName || '—'}</td>
                 <td style={tdStyle}><DirectionBadge direction={s.direction} locale={locale} /></td>
@@ -58,5 +60,4 @@ export default function ShipmentsTable({ shipments, locale = 'en', filtered = fa
   )
 }
 
-const thStyle: React.CSSProperties = { textAlign: 'left', padding: '10px 16px', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B' }
-const tdStyle: React.CSSProperties = { padding: '11px 16px', fontSize: 12.5, color: '#1A2226' }
+const thStyle: React.CSSProperties = { textAlign: 'left', padding: '10px 16px', fontSize:

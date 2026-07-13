@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { recomputeByTracking } from '@/lib/reconcile'
 import { parseAcsDate } from '@/lib/acs'
+import { audit } from '@/lib/audit'
 import type { PaymentMethod } from '@prisma/client'
 
 export const runtime = 'nodejs'
@@ -24,6 +25,33 @@ export async function POST(req: Request) {
   if (!trackingNumber) return NextResponse.json({ error: 'Tracking number is required.' }, { status: 400 })
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: 'Enter a valid amount greater than zero.' }, { status: 400 })
 
+  // Duplicate-cheque guard: same cheque number (+ bank, if given) already recorded.
+  const chequeNumber = body.chequeNumber ? String(body.chequeNumber).trim() : null
+  if (method === 'CHEQUE' && chequeNumber && body.force !== true) {
+    const existing = await prisma.payment.findFirst({
+      where: {
+        method: 'CHEQUE',
+        chequeNumber: { equals: chequeNumber, mode: 'insensitive' },
+        ...(body.bank ? { bank: { equals: String(body.bank).trim(), mode: 'insensitive' } } : {}),
+      },
+      select: { id: true, trackingNumber: true, amount: true, bank: true, createdAt: true },
+    })
+    if (existing) {
+      return NextResponse.json(
+        {
+          duplicate: true,
+          existing: {
+            trackingNumber: existing.trackingNumber,
+            amount: Number(existing.amount),
+            bank: existing.bank,
+            createdAt: existing.createdAt,
+          },
+        },
+        { status: 409 }
+      )
+    }
+  }
+
   const shipment = await prisma.shipment.findUnique({
     where: { trackingNumber },
     select: { id: true },
@@ -36,7 +64,8 @@ export async function POST(req: Request) {
       paymentDate: parseAcsDate(body.paymentDate) ?? new Date(),
       source: method === 'CHEQUE' ? 'MANUAL_CHEQUE' : 'MANUAL',
       bank: body.bank ? String(body.bank).trim() : null,
-      chequeNumber: body.chequeNumber ? String(body.chequeNumber).trim() : null,
+      chequeNumber,
+      chequeStatus: method === 'CHEQUE' ? 'PENDING' : null,
       reference: body.reference ? String(body.reference).trim() : null,
       trackingNumber,
       shipmentId: shipment?.id ?? null,
@@ -45,6 +74,13 @@ export async function POST(req: Request) {
   })
 
   await recomputeByTracking([trackingNumber])
+
+  await audit({
+    user: session.user?.name,
+    action: 'PAYMENT_ADD',
+    trackingNumber,
+    detail: `${method} €${amount.toFixed(2)}${chequeNumber ? ` (cheque ${chequeNumber}${body.bank ? `, ${String(body.bank).trim()}` : ''})` : ''}`,
+  })
 
   const updated = shipment
     ? await prisma.shipment.findUnique({ where: { id: shipment.id }, select: { status: true } })

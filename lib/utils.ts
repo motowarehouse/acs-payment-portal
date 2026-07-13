@@ -49,3 +49,23 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 export function amountsMatch(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.01
 }
+
+/**
+ * Sum the payment lines that actually count toward the COD.
+ * Bounced cheques are excluded.
+ */
+export function paidSum(
+  payments: { amount: Prisma.Decimal | number | string | null; chequeStatus?: string | null }[],
+): number {
+  return payments
+    .filter((p) => p.chequeStatus !== 'BOUNCED')
+    .reduce((sum, p) => sum + toNumber(p.amount), 0)
+}
+
+/** Whole days elapsed since a date (0 if missing/future). */
+export function daysSince(date: Date | string | null | undefined): number {
+  if (!date) return 0
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return 0
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000))
+}

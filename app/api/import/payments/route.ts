@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parsePaymentFile } from '@/lib/acs'
 import { recomputeByTracking } from '@/lib/reconcile'
-import { amountsMatch } from '@/lib/utils'
+import { amountsMatch, paidSum } from '@/lib/utils'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
   })
   let mismatches = 0
   for (const s of affected) {
-    const paid = s.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+    const paid = paidSum(s.payments)
     if (s.direction === 'OUTBOUND' && Number(s.codAmount) > 0 && !amountsMatch(paid, Number(s.codAmount)) && paid > 0) {
       mismatches++
     }

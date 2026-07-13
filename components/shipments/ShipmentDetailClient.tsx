@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2, Plus, Loader2, Save, RotateCcw, Check, X } from 'lucide-react'
-import { formatEuro, formatDate } from '@/lib/utils'
+import { Trash2, Plus, Loader2, Save, RotateCcw, Check, X, History } from 'lucide-react'
+import { formatEuro, formatDate, formatDateTime } from '@/lib/utils'
 import { STATUS_META, PAYMENT_METHOD_META } from '@/lib/constants'
 import { MethodBadge } from '@/components/ui/Badges'
 import { useT, useLocale } from '@/components/i18n/LocaleProvider'
-import type { ShipmentStatus, PaymentMethod } from '@prisma/client'
+import type { ShipmentStatus, PaymentMethod, ChequeStatus } from '@prisma/client'
 
 interface PaymentDTO {
   id: string
@@ -15,9 +15,18 @@ interface PaymentDTO {
   amount: number
   bank: string | null
   chequeNumber: string | null
+  chequeStatus: ChequeStatus | null
   paymentDate: string | null
   source: string
   createdBy: string | null
+}
+
+interface HistoryDTO {
+  id: string
+  at: string
+  user: string | null
+  action: string
+  detail: string | null
 }
 
 interface Props {
@@ -29,6 +38,13 @@ interface Props {
   paidSum: number
   notes: string | null
   payments: PaymentDTO[]
+  history?: HistoryDTO[]
+}
+
+const CHEQUE_META: Record<ChequeStatus, { color: string; bg: string; en: string; gr: string }> = {
+  PENDING: { color: '#B7791F', bg: 'rgba(183,121,31,0.10)', en: 'Pending', gr: 'Εκκρεμεί' },
+  CLEARED: { color: '#2F8F5B', bg: 'rgba(47,143,91,0.10)', en: 'Cleared', gr: 'Εξοφλήθηκε' },
+  BOUNCED: { color: '#DE1D1C', bg: 'rgba(222,29,28,0.10)', en: 'Bounced', gr: 'Ακάλυπτη' },
 }
 
 const SELECTABLE: ShipmentStatus[] = ['AWAITING', 'PARTIALLY_PAID', 'PAID', 'RETURNED', 'EXCEPTION', 'NO_COD']
@@ -63,6 +79,16 @@ export default function ShipmentDetailClient(props: Props) {
     } finally {
       setBusy(false)
       setConfirmDelete(null)
+    }
+  }
+
+  async function setChequeStatus(pid: string, chequeStatus: ChequeStatus) {
+    setBusy(true)
+    try {
+      await fetch(`/api/payments/${pid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chequeStatus }) })
+      router.refresh()
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -127,6 +153,26 @@ export default function ShipmentDetailClient(props: Props) {
                     {p.method === 'CHEQUE' && (p.chequeNumber || p.bank)
                       ? `${p.bank ?? ''} ${p.chequeNumber ?? ''}`.trim()
                       : p.source === 'IMPORT' ? 'ACS' : p.createdBy || '—'}
+                  </td>
+                  <td style={{ padding: '11px 8px', whiteSpace: 'nowrap' }}>
+                    {p.method === 'CHEQUE' && (() => {
+                      const cs = p.chequeStatus ?? 'PENDING' // cheques saved before this feature count as pending
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: CHEQUE_META[cs].color, background: CHEQUE_META[cs].bg, padding: '2px 8px', borderRadius: 3, textDecoration: cs === 'BOUNCED' ? 'line-through' : 'none' }}>
+                            {locale === 'gr' ? CHEQUE_META[cs].gr : CHEQUE_META[cs].en}
+                          </span>
+                          {cs === 'PENDING' ? (
+                            <>
+                              <button onClick={() => setChequeStatus(p.id, 'CLEARED')} disabled={busy} title={tr('markCleared')} style={iconBtn('#2F8F5B')}><Check size={12} /></button>
+                              <button onClick={() => setChequeStatus(p.id, 'BOUNCED')} disabled={busy} title={tr('markBounced')} style={iconBtn('#DE1D1C')}><X size={12} /></button>
+                            </>
+                          ) : (
+                            <button onClick={() => setChequeStatus(p.id, 'PENDING')} disabled={busy} title={tr('markPending')} style={iconBtn('#8A939B')}><RotateCcw size={11} /></button>
+                          )}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td style={{ padding: '11px 8px', fontSize: 12, color: '#667079' }}>{formatDate(p.paymentDate)}</td>
                   <td style={{ padding: '11px 18px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -215,6 +261,27 @@ export default function ShipmentDetailClient(props: Props) {
           <button className="btn-ghost" style={{ marginTop: 8, width: '100%', height: 34 }} onClick={() => patch({ notes })} disabled={busy}>
             <Save size={13} /> {tr('saveNote')}
           </button>
+        </div>
+
+        {/* History panel */}
+        <div className="panel" style={{ padding: 16 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <History size={13} /> {tr('history')}
+          </p>
+          {!props.history || props.history.length === 0 ? (
+            <p style={{ fontSize: 12, color: '#A6AEB2' }}>{tr('noHistory')}</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {props.history.map((h) => (
+                <div key={h.id} style={{ borderLeft: '2px solid #E7EAED', paddingLeft: 10 }}>
+                  <p style={{ fontSize: 12, color: '#1A2226', lineHeight: 1.4 }}>{h.detail || h.action}</p>
+                  <p style={{ fontSize: 10.5, color: '#A6AEB2', marginTop: 1 }}>
+                    {formatDateTime(h.at)}{h.user ? ` · ${h.user}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

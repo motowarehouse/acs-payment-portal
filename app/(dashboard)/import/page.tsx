@@ -5,7 +5,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import ImportClient from '@/components/import/ImportClient'
 import UndoImportButton from '@/components/import/UndoImportButton'
 import { formatDateTime } from '@/lib/utils'
-import { PackageSearch, Wallet } from 'lucide-react'
+import { PackageSearch, Wallet, DatabaseBackup } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,15 @@ export default async function ImportPage() {
 
   return (
     <div>
-      <PageHeader title={tr('import_title')} subtitle={tr('import_sub')} />
+      <PageHeader
+        title={tr('import_title')}
+        subtitle={tr('import_sub')}
+        action={
+          <a href="/api/export/backup" className="btn-ghost" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', height: 36 }} title={tr('downloadBackupSub')}>
+            <DatabaseBackup size={14} /> {tr('downloadBackup')}
+          </a>
+        }
+      />
 
       <ImportClient />
 

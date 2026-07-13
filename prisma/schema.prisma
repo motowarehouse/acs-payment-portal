@@ -39,6 +39,13 @@ enum PaymentMethod {
   CHEQUE
 }
 
+// ─── Lifecycle of a cheque (only for CHEQUE payments) ───────────────
+enum ChequeStatus {
+  PENDING // received, not yet cleared by the bank
+  CLEARED // bank confirmed the funds
+  BOUNCED // returned unpaid — no longer counts toward the COD
+}
+
 enum PaymentSource {
   IMPORT        // came from a File 2 (Notification of Payment) import
   MANUAL_CHEQUE // typed in via the cheque form
@@ -120,6 +127,7 @@ model Payment {
   // cheque-specific fields (null for cash/visa)
   bank         String?
   chequeNumber String? // Αρ. Επιταγής
+  chequeStatus ChequeStatus? // PENDING/CLEARED/BOUNCED — null for non-cheque payments
   reference    String? // free reference
 
   // matching
@@ -136,4 +144,17 @@ model Payment {
   @@index([shipmentId])
   @@index([trackingNumber])
   @@index([method])
+}
+
+// ─── Audit trail — who did what, when ────────────────────────────────
+model AuditLog {
+  id             String   @id @default(cuid())
+  at             DateTime @default(now())
+  user           String? // login username of whoever performed the action
+  action         String // e.g. STATUS_CHANGE, PAYMENT_ADD, PAYMENT_DELETE, CHEQUE_STATUS, IMPORT_UNDO
+  trackingNumber String? // shipment this concerns, when applicable
+  detail         String?  @db.Text // human-readable description
+
+  @@index([trackingNumber])
+  @@index([at])
 }

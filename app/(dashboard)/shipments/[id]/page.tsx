@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { getLocale } from '@/lib/locale'
 import { t } from '@/lib/i18n'
-import { formatEuro, formatDate, formatDateTime, toNumber } from '@/lib/utils'
+import { formatEuro, formatDate, formatDateTime, toNumber, paidSum } from '@/lib/utils'
 import { StatusBadge, DirectionBadge } from '@/components/ui/Badges'
 import ShipmentDetailClient from '@/components/shipments/ShipmentDetailClient'
 
@@ -19,7 +19,13 @@ export default async function ShipmentDetail({ params }: { params: { id: string 
   })
   if (!shipment) notFound()
 
-  const paidSum = shipment.payments.reduce((s, p) => s + toNumber(p.amount), 0)
+  const history = await prisma.auditLog.findMany({
+    where: { trackingNumber: shipment.trackingNumber },
+    orderBy: { at: 'desc' },
+    take: 20,
+  })
+
+  const paid = paidSum(shipment.payments)
 
   const facts: [string, string][] = [
     [tr('fact_tracking'), shipment.trackingNumber],
@@ -73,19 +79,9 @@ export default async function ShipmentDetail({ params }: { params: { id: string 
         status={shipment.status}
         statusManual={shipment.statusManual}
         codAmount={toNumber(shipment.codAmount)}
-        paidSum={paidSum}
+        paidSum={paid}
         notes={shipment.notes}
         payments={shipment.payments.map((p) => ({
           id: p.id,
           method: p.method,
-          amount: toNumber(p.amount),
-          bank: p.bank,
-          chequeNumber: p.chequeNumber,
-          paymentDate: p.paymentDate ? p.paymentDate.toISOString() : null,
-          source: p.source,
-          createdBy: p.createdBy,
-        }))}
-      />
-    </div>
-  )
-}
+          amount: t

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { paidSum } from '@/lib/utils'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
       codAmount: Number(shipment.codAmount),
       status: shipment.status,
       direction: shipment.direction,
-      paidSum: shipment.payments.reduce((s, p) => s + Number(p.amount), 0),
+      paidSum: paidSum(shipment.payments),
     },
   })
 }

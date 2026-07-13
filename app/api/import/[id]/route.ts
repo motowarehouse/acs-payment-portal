@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { recomputeByTracking } from '@/lib/reconcile'
+import { audit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,6 +28,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     await prisma.payment.deleteMany({ where: { importBatchId: batch.id } })
     await recomputeByTracking(trackings)
     await prisma.importBatch.delete({ where: { id: batch.id } })
+    await audit({ user: session.user?.name, action: 'IMPORT_UNDO', detail: `Payments import "${batch.filename}" undone — ${payments.length} payment line(s) removed` })
     return NextResponse.json({ ok: true, type: 'PAYMENTS', removed: payments.length })
   }
 
@@ -40,6 +42,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
   await prisma.shipment.deleteMany({ where: { id: { in: deletable.map((s) => s.id) } } })
   await prisma.importBatch.delete({ where: { id: batch.id } })
+  await audit({ user: session.user?.name, action: 'IMPORT_UNDO', detail: `Shipments import "${batch.filename}" undone — ${deletable.length} removed, ${kept} kept (had payments)` })
 
   return NextResponse.json({
     ok: true,

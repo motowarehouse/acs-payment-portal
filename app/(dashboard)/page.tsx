@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getLocale } from '@/lib/locale'
 import { t } from '@/lib/i18n'
-import { toNumber, formatEuro } from '@/lib/utils'
+import { toNumber, formatEuro, paidSum } from '@/lib/utils'
 import { OUTSTANDING_STATUSES } from '@/lib/constants'
 import PageHeader from '@/components/ui/PageHeader'
 import { CheckCircle2, Circle, Upload, Receipt, AlertTriangle, ArrowRight, PackageSearch, Wallet } from 'lucide-react'
@@ -29,7 +29,7 @@ export default async function TodayPage() {
 
   const reviewCount = exceptionCount + unmatchedCount + dupCount + shortCount
   const outstandingTotal = outstanding.reduce((sum, s) => {
-    const paid = s.payments.reduce((a, p) => a + toNumber(p.amount), 0)
+    const paid = paidSum(s.payments)
     return sum + Math.max(toNumber(s.codAmount) - paid, 0)
   }, 0)
 

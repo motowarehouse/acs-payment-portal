@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getLocale } from '@/lib/locale'
 import { t } from '@/lib/i18n'
-import { toNumber, formatEuro } from '@/lib/utils'
+import { toNumber, formatEuro, paidSum } from '@/lib/utils'
 import { OUTSTANDING_STATUSES } from '@/lib/constants'
 import PageHeader from '@/components/ui/PageHeader'
 
@@ -30,7 +30,7 @@ export default async function CustomersPage() {
 
   for (const s of shipments) {
     const key = s.recipientCode || (s.recipientName || 'Unknown').trim().toUpperCase()
-    const paid = s.payments.reduce((a, p) => a + toNumber(p.amount), 0)
+    const paid = paidSum(s.payments)
     const cod = toNumber(s.codAmount)
     const outstanding = OUTSTANDING_STATUSES.includes(s.status) ? Math.max(cod - paid, 0) : 0
 

@@ -201,6 +201,28 @@ const D = {
   col_outstanding: { en: 'Outstanding', gr: 'Οφειλή' },
   cust_empty:      { en: 'No COD shipments imported yet.', gr: 'Καμία αποστολή αντικαταβολής ακόμη.' },
   total:           { en: 'Total', gr: 'Σύνολο' },
+
+  // Copy to clipboard
+  copyTracking:    { en: 'Copy tracking number', gr: 'Αντιγραφή αριθμού' },
+  copied:          { en: 'Copied!', gr: 'Αντιγράφηκε!' },
+
+  // Cheque lifecycle
+  markCleared:     { en: 'Mark as cleared', gr: 'Σήμανση ως εξοφλημένη' },
+  markBounced:     { en: 'Mark as bounced', gr: 'Σήμανση ως ακάλυπτη' },
+  markPending:     { en: 'Back to pending', gr: 'Επαναφορά σε εκκρεμή' },
+  chequesPending:  { en: 'pending', gr: 'εκκρεμούν' },
+  dupCheque:       { en: 'This cheque number is already recorded', gr: 'Αυτός ο αριθμός επιταγής έχει ήδη καταχωρηθεί' },
+  saveAnyway:      { en: 'Save anyway', gr: 'Αποθήκευση ούτως ή άλλως' },
+
+  // Outstanding aging & export
+  col_days:        { en: 'Days', gr: 'Ημέρες' },
+  exportExcel:     { en: 'Export Excel', gr: 'Εξαγωγή Excel' },
+
+  // History & backup
+  history:         { en: 'History', gr: 'Ιστορικό' },
+  noHistory:       { en: 'No changes recorded yet.', gr: 'Καμία καταγεγραμμένη αλλαγή ακόμη.' },
+  downloadBackup:  { en: 'Download backup', gr: 'Λήψη αντιγράφου' },
+  downloadBackupSub: { en: 'Full Excel backup of all shipments, payments and imports', gr: 'Πλήρες αντίγραφο Excel όλων των αποστολών, πληρωμών και εισαγωγών' },
 } satisfies Record<string, Entry>
 
 export type TKey = keyof typeof D

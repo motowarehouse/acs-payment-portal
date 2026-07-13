@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { recomputeShipment } from '@/lib/reconcile'
+import { audit } from '@/lib/audit'
 import type { ShipmentStatus, Direction } from '@prisma/client'
 
 export const runtime = 'nodejs'
@@ -40,6 +41,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   // If the override was cleared or direction changed, recompute from payments.
   if (body.clearOverride === true || body.direction) {
     await recomputeShipment(params.id)
+  }
+
+  const user = session.user?.name
+  if (body.clearOverride === true) {
+    await audit({ user, action: 'STATUS_CHANGE', trackingNumber: shipment.trackingNumber, detail: 'Manual status override cleared (back to automatic)' })
+  } else if (body.status && body.status !== shipment.status) {
+    await audit({ user, action: 'STATUS_CHANGE', trackingNumber: shipment.trackingNumber, detail: `Status ${shipment.status} → ${body.status} (manual)` })
+  }
+  if (body.notes !== undefined && (body.notes || null) !== shipment.notes) {
+    await audit({ user, action: 'NOTES_EDIT', trackingNumber: shipment.trackingNumber, detail: 'Notes updated' })
   }
 
   const updated = await prisma.shipment.findUnique({

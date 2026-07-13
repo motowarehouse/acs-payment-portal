@@ -33,6 +33,7 @@ export default function ChequeEntry() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
+  const [duplicate, setDuplicate] = useState<{ trackingNumber: string; amount: number; bank: string | null } | null>(null)
 
   async function lookup() {
     if (!tracking.trim()) return
@@ -52,18 +53,22 @@ export default function ChequeEntry() {
     }
   }
 
-  async function submit() {
+  async function submit(force = false) {
     setSaving(true); setError(null)
+    if (force) setDuplicate(null)
     try {
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackingNumber: tracking.trim(), amount: Number(amount), method: 'CHEQUE', bank, chequeNumber, paymentDate: paymentDate || undefined }),
+        body: JSON.stringify({ trackingNumber: tracking.trim(), amount: Number(amount), method: 'CHEQUE', bank, chequeNumber, paymentDate: paymentDate || undefined, force }),
       })
       const json = await res.json()
-      if (!res.ok) {
+      if (res.status === 409 && json.duplicate) {
+        setDuplicate(json.existing)
+      } else if (!res.ok) {
         setError(json.error || 'Could not save the cheque.')
       } else {
+        setDuplicate(null)
         const statusName = json.status ? (locale === 'gr' ? STATUS_META[json.status as ShipmentStatus].labelGr : STATUS_META[json.status as ShipmentStatus].label) : null
         setDone(statusName ? `${tr('recordCheque')} ✓  (${statusName})` : `${tr('recordCheque')} ✓`)
         setBank(''); setChequeNumber(''); setAmount(''); setPaymentDate(''); setFound(null); setTracking('')
@@ -136,8 +141,27 @@ export default function ChequeEntry() {
               <input className="input-base" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
             </div>
             <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
-              <button className="btn-primary" onClick={submit} disabled={saving || !amount}>
+              <button className="btn-primary" onClick={() => submit(false)} disabled={saving || !amount}>
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Receipt size={14} />} {tr('recordCheque')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {duplicate && (
+          <div style={{ marginTop: 12, background: 'rgba(183,121,31,0.08)', border: '1px solid rgba(183,121,31,0.25)', borderRadius: 4, padding: '10px 12px' }} className="animate-fade-up">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <AlertTriangle size={14} color="#B7791F" style={{ flexShrink: 0, marginTop: 1 }} />
+              <p style={{ fontSize: 12, color: '#8A5D18' }}>
+                {tr('dupCheque')} — {duplicate.bank ? `${duplicate.bank}, ` : ''}{formatEuro(duplicate.amount)} ({duplicate.trackingNumber})
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button className="btn-primary" style={{ height: 32, fontSize: 11.5 }} onClick={() => submit(true)} disabled={saving}>
+                {tr('saveAnyway')}
+              </button>
+              <button className="btn-ghost" style={{ height: 32, fontSize: 11.5 }} onClick={() => setDuplicate(null)} disabled={saving}>
+                {tr('cancel')}
               </button>
             </div>
           </div>

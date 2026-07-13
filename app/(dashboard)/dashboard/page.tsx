@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getLocale } from '@/lib/locale'
 import { t } from '@/lib/i18n'
-import { toNumber, formatEuro, formatDateTime } from '@/lib/utils'
+import { toNumber, formatEuro, formatDateTime, paidSum } from '@/lib/utils'
 import { OUTSTANDING_STATUSES } from '@/lib/constants'
 import PageHeader from '@/components/ui/PageHeader'
 import StatCards, { type Stat } from '@/components/dashboard/StatCards'
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     ])
 
   const outstandingTotal = outstandingShipments.reduce((sum, s) => {
-    const paid = s.payments.reduce((a, p) => a + toNumber(p.amount), 0)
+    const paid = paidSum(s.payments)
     return sum + Math.max(toNumber(s.codAmount) - paid, 0)
   }, 0)
   const awaitingCount = statusGroups.find((g) => g.status === 'AWAITING')?._count._all ?? 0

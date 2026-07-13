@@ -4,7 +4,7 @@ import { getLocale } from '@/lib/locale'
 import { t } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/Badges'
-import { formatEuro, formatDate, toNumber } from '@/lib/utils'
+import { formatEuro, formatDate, toNumber, paidSum } from '@/lib/utils'
 import { AlertTriangle, HelpCircle, Copy, CheckCircle2, TrendingDown } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -40,7 +40,7 @@ export default async function ExceptionsPage() {
             <thead><tr style={{ background: '#FAFBFC' }}>{[tr('col_tracking'), tr('col_recipient'), tr('cod'), tr('col_paid'), tr('col_status')].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>
               {exceptionShipments.map((s) => {
-                const paid = s.payments.reduce((sum, p) => sum + toNumber(p.amount), 0)
+                const paid = paidSum(s.payments)
                 return (
                   <tr key={s.id} style={{ borderTop: '1px solid #F2F4F6' }}>
                     <td style={td}><Link href={`/shipments/${s.id}`} style={link}>{s.trackingNumber}</Link></td>
@@ -62,7 +62,7 @@ export default async function ExceptionsPage() {
             <thead><tr style={{ background: '#FAFBFC' }}>{[tr('col_tracking'), tr('col_recipient'), tr('cod'), tr('col_paid'), tr('col_short')].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>
               {shortCollections.map((s) => {
-                const paid = s.payments.reduce((sum, p) => sum + toNumber(p.amount), 0)
+                const paid = paidSum(s.payments)
                 const short = Math.max(toNumber(s.codAmount) - paid, 0)
                 return (
                   <tr key={s.id} style={{ borderTop: '1px solid #F2F4F6' }}>

@@ -21,7 +21,10 @@ export async function recomputeShipment(shipmentId: string): Promise<ShipmentSta
     return shipment.status
   }
 
-  const paidSum = shipment.payments.reduce((sum, p) => sum + toNumber(p.amount), 0)
+  // Bounced cheques no longer count toward the COD.
+  const paidSum = shipment.payments
+    .filter((p) => p.chequeStatus !== 'BOUNCED')
+    .reduce((sum, p) => sum + toNumber(p.amount), 0)
   const next = computeStatus(toNumber(shipment.codAmount), shipment.direction, paidSum)
 
   if (next !== shipment.status) {
