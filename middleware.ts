@@ -33,9 +33,9 @@ function take(key: string, limit: number, windowMs: number): { ok: boolean; retr
 function sweep() {
   if (hits.size < 5000) return
   const now = Date.now()
-  for (const [k, b] of hits) {
+  hits.forEach((b, k) => {
     if (now >= b.resetAt) hits.delete(k)
-  }
+  })
 }
 
 export function middleware(req: NextRequest) {
