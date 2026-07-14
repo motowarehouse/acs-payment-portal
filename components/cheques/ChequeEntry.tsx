@@ -157,7 +157,7 @@ export default function ChequeEntry() {
               placeholder={tr('chequeSearchPh')}
             />
             {showSug && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, marginTop: 4, background: 'white', border: '1px solid #E0E5E8', borderRadius: 5, boxShadow: '0 6px 18px rgba(0,26,34,0.10)', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, marginTop: 4, background: 'white', border: '1px solid #E0E5E8', borderRadius: 5, boxShadow: '0 6px 18px rgba(0,26,34,0.10)', maxHeight: 220, overflowY: 'auto' }}>
                 {suggestions.map((s) => (
                   <button
                     key={s.id}
