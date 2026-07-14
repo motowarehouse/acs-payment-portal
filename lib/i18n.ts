@@ -213,6 +213,7 @@ const D = {
   chequesPending:  { en: 'pending', gr: 'εκκρεμούν' },
   dupCheque:       { en: 'This cheque number is already recorded', gr: 'Αυτός ο αριθμός επιταγής έχει ήδη καταχωρηθεί' },
   saveAnyway:      { en: 'Save anyway', gr: 'Αποθήκευση ούτως ή άλλως' },
+  chequeSearchPh:  { en: 'Type tracking no. or customer name…', gr: 'Πληκτρολογήστε αριθμό ή όνομα πελάτη…' },
 
   // Outstanding aging & export
   col_days:        { en: 'Days', gr: 'Ημέρες' },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, CheckCircle2, AlertTriangle, Loader2, Receipt } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
@@ -15,6 +15,13 @@ interface Found {
   codAmount: number
   status: ShipmentStatus
   paidSum: number
+}
+
+interface Suggestion {
+  id: string
+  trackingNumber: string
+  recipientName: string | null
+  remaining: number
 }
 
 export default function ChequeEntry() {
@@ -35,11 +42,50 @@ export default function ChequeEntry() {
   const [done, setDone] = useState<string | null>(null)
   const [duplicate, setDuplicate] = useState<{ trackingNumber: string; amount: number; bank: string | null } | null>(null)
 
-  async function lookup() {
-    if (!tracking.trim()) return
+  // Autocomplete over outstanding shipments (search by tracking or customer name)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [showSug, setShowSug] = useState(false)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipNextFetch = useRef(false)
+
+  useEffect(() => {
+    if (skipNextFetch.current) {
+      skipNextFetch.current = false
+      return
+    }
+    if (debounce.current) clearTimeout(debounce.current)
+    const q = tracking.trim()
+    if (q.length < 2) {
+      setSuggestions([]); setShowSug(false)
+      return
+    }
+    debounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/shipments/suggest?q=${encodeURIComponent(q)}`)
+        const json = await res.json()
+        setSuggestions(json.suggestions ?? [])
+        setShowSug((json.suggestions ?? []).length > 0)
+      } catch {
+        setSuggestions([]); setShowSug(false)
+      }
+    }, 250)
+    return () => { if (debounce.current) clearTimeout(debounce.current) }
+  }, [tracking])
+
+  function pickSuggestion(s: Suggestion) {
+    skipNextFetch.current = true
+    setTracking(s.trackingNumber)
+    setSuggestions([]); setShowSug(false)
+    lookup(s.trackingNumber)
+  }
+
+  async function lookup(value?: string) {
+    const q = (value ?? tracking).trim()
+    if (!q) return
+    setShowSug(false)
     setLooking(true); setFound(null); setNotFound(false); setDone(null); setError(null)
     try {
-      const res = await fetch(`/api/shipments/lookup?tracking=${encodeURIComponent(tracking.trim())}`)
+      const res = await fetch(`/api/shipments/lookup?tracking=${encodeURIComponent(q)}`)
       const json = await res.json()
       if (json.found) {
         setFound(json.shipment)
@@ -98,8 +144,40 @@ export default function ChequeEntry() {
       <div style={{ padding: 18 }}>
         <label className="label-base">{tr('trackingLabel')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
-          <input className="input-base" value={tracking} onChange={(e) => setTracking(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && lookup()} placeholder="9601869524" />
-          <button className="btn-ghost" onClick={lookup} disabled={looking} style={{ flexShrink: 0 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              className="input-base"
+              value={tracking}
+              onChange={(e) => setTracking(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && lookup()}
+              onBlur={() => setTimeout(() => setShowSug(false), 150)}
+              onFocus={() => suggestions.length > 0 && setShowSug(true)}
+              placeholder={tr('chequeSearchPh')}
+            />
+            {showSug && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, marginTop: 4, background: 'white', border: '1px solid #E0E5E8', borderRadius: 5, boxShadow: '0 6px 18px rgba(0,26,34,0.10)', overflow: 'hidden' }}>
+                {suggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); pickSuggestion(s) }}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'white', border: 'none', borderTop: '1px solid #F2F4F6', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F9FB')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+                  >
+                    <span style={{ fontSize: 12.5, color: '#1A2226', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#009BB4' }}>{s.trackingNumber}</span>
+                      {'  '}{s.recipientName || '—'}
+                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#B7791F', flexShrink: 0 }}>
+                      {formatEuro(s.remaining)} {tr('remaining')}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button className="btn-ghost" onClick={() => lookup()} disabled={looking} style={{ flexShrink: 0 }}>
             {looking ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} {tr('find')}
           </button>
         </div>
