@@ -130,7 +130,7 @@ export default function ChequeEntry() {
   const remaining = found ? Math.max(found.codAmount - found.paidSum, 0) : 0
 
   return (
-    <div className="panel animate-fade-up" style={{ overflow: 'hidden', maxWidth: 640 }}>
+    <div className="panel animate-fade-up" style={{ overflow: 'visible', maxWidth: 640 }}>
       <div style={{ padding: '16px 18px', borderBottom: '1px solid #EEF1F3', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 38, height: 38, borderRadius: 4, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Receipt size={19} color="#7C3AED" strokeWidth={1.8} />
