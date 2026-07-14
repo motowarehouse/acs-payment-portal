@@ -130,7 +130,7 @@ export default function ChequeEntry() {
   const remaining = found ? Math.max(found.codAmount - found.paidSum, 0) : 0
 
   return (
-    <div className="panel animate-fade-up" style={{ overflow: 'visible', maxWidth: 640 }}>
+    <div className="panel animate-fade-up" style={{ overflow: 'visible' }}>
       <div style={{ padding: '16px 18px', borderBottom: '1px solid #EEF1F3', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 38, height: 38, borderRadius: 4, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Receipt size={19} color="#7C3AED" strokeWidth={1.8} />
@@ -145,8 +145,10 @@ export default function ChequeEntry() {
         <label className="label-base">{tr('trackingLabel')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={15} color="#A6AEB2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
             <input
               className="input-base"
+              style={{ paddingLeft: 36 }}
               value={tracking}
               onChange={(e) => setTracking(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && lookup()}
@@ -181,6 +183,9 @@ export default function ChequeEntry() {
             {looking ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} {tr('find')}
           </button>
         </div>
+        {!found && !notFound && (
+          <p style={{ fontSize: 11.5, color: '#A6AEB2', marginTop: 8 }}>{tr('chequeSearchHint')}</p>
+        )}
 
         {notFound && (
           <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-start', background: 'rgba(183,121,31,0.08)', border: '1px solid rgba(183,121,31,0.25)', borderRadius: 4, padding: '10px 12px' }}>

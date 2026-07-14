@@ -214,6 +214,16 @@ const D = {
   dupCheque:       { en: 'This cheque number is already recorded', gr: 'Αυτός ο αριθμός επιταγής έχει ήδη καταχωρηθεί' },
   saveAnyway:      { en: 'Save anyway', gr: 'Αποθήκευση ούτως ή άλλως' },
   chequeSearchPh:  { en: 'Type tracking no. or customer name…', gr: 'Πληκτρολογήστε αριθμό ή όνομα πελάτη…' },
+  chequeSearchHint: { en: 'Searches outstanding shipments as you type — by tracking number or customer.', gr: 'Αναζητά εκκρεμείς αποστολές καθώς πληκτρολογείτε — με αριθμό ή πελάτη.' },
+
+  // Cheque stats
+  stat_pending:     { en: 'Pending cheques', gr: 'Εκκρεμείς επιταγές' },
+  stat_pending_sub: { en: 'awaiting bank clearance', gr: 'σε αναμονή εκκαθάρισης' },
+  stat_cleared:     { en: 'Cleared this month', gr: 'Εξοφλήθηκαν αυτόν τον μήνα' },
+  stat_cleared_sub: { en: 'confirmed by the bank', gr: 'επιβεβαιωμένες από την τράπεζα' },
+  stat_bounced:     { en: 'Bounced', gr: 'Ακάλυπτες' },
+  stat_bounced_none: { en: 'none — all good', gr: 'καμία — όλα εντάξει' },
+  stat_bounced_sub: { en: 'returned unpaid', gr: 'επεστράφησαν απλήρωτες' },
 
   // Outstanding aging & export
   col_days:        { en: 'Days', gr: 'Ημέρες' },
