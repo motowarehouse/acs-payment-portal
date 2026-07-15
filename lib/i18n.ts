@@ -215,6 +215,18 @@ const D = {
   saveAnyway:      { en: 'Save anyway', gr: 'Αποθήκευση ούτως ή άλλως' },
   chequeSearchPh:  { en: 'Type tracking no. or customer name…', gr: 'Πληκτρολογήστε αριθμό ή όνομα πελάτη…' },
   chequeSearchHint: { en: 'Searches outstanding shipments as you type — by tracking number or customer.', gr: 'Αναζητά εκκρεμείς αποστολές καθώς πληκτρολογείτε — με αριθμό ή πελάτη.' },
+  chequeSearchHint2: { en: 'Searches outstanding shipments as you type. One cheque can cover several shipments — add each one to the list.', gr: 'Αναζητά εκκρεμείς αποστολές καθώς πληκτρολογείτε. Μία επιταγή μπορεί να καλύπτει πολλές αποστολές — προσθέστε τις στη λίστα.' },
+
+  // Split cheque
+  selShipments:    { en: 'Shipments on this cheque', gr: 'Αποστολές αυτής της επιταγής' },
+  alreadyAdded:    { en: 'Added', gr: 'Προστέθηκε' },
+  addMoreHint:     { en: 'Search again to add more shipments to the same cheque.', gr: 'Αναζητήστε ξανά για να προσθέσετε κι άλλες αποστολές στην ίδια επιταγή.' },
+  chequeTotal:     { en: 'Cheque amount (€)', gr: 'Ποσό επιταγής (€)' },
+  overRemaining:   { en: 'more than remaining', gr: 'περισσότερο από το υπόλοιπο' },
+  removeRow:       { en: 'Remove', gr: 'Αφαίρεση' },
+  allocOk:         { en: 'Amounts match the cheque', gr: 'Τα ποσά συμφωνούν με την επιταγή' },
+  allocLeft:       { en: 'Left to allocate', gr: 'Απομένει να κατανεμηθεί' },
+  allocOver:       { en: 'Over the cheque amount by', gr: 'Υπέρβαση του ποσού κατά' },
 
   // Cheque stats
   stat_pending:     { en: 'Pending cheques', gr: 'Εκκρεμείς επιταγές' },

@@ -2,20 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, CheckCircle2, AlertTriangle, Loader2, Receipt } from 'lucide-react'
+import { Search, CheckCircle2, AlertTriangle, Loader2, Receipt, X, Scale } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
-import { STATUS_META } from '@/lib/constants'
-import { useT, useLocale } from '@/components/i18n/LocaleProvider'
-import type { ShipmentStatus } from '@prisma/client'
-
-interface Found {
-  id: string
-  trackingNumber: string
-  recipientName: string | null
-  codAmount: number
-  status: ShipmentStatus
-  paidSum: number
-}
+import { useT } from '@/components/i18n/LocaleProvider'
 
 interface Suggestion {
   id: string
@@ -24,29 +13,36 @@ interface Suggestion {
   remaining: number
 }
 
+interface SelectedRow extends Suggestion {
+  alloc: string // editable allocation, kept as text for typing
+}
+
 export default function ChequeEntry() {
   const router = useRouter()
   const tr = useT()
-  const locale = useLocale()
+
+  // search
   const [tracking, setTracking] = useState('')
   const [looking, setLooking] = useState(false)
-  const [found, setFound] = useState<Found | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [showSug, setShowSug] = useState(false)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipNextFetch = useRef(false)
 
+  // selection (one cheque can cover several shipments of the same client)
+  const [selected, setSelected] = useState<SelectedRow[]>([])
+
+  // cheque details
   const [bank, setBank] = useState('')
   const [chequeNumber, setChequeNumber] = useState('')
-  const [amount, setAmount] = useState('')
+  const [total, setTotal] = useState('')
+  const totalTouched = useRef(false)
   const [paymentDate, setPaymentDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
   const [duplicate, setDuplicate] = useState<{ trackingNumber: string; amount: number; bank: string | null } | null>(null)
-
-  // Autocomplete over outstanding shipments (search by tracking or customer name)
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [showSug, setShowSug] = useState(false)
-  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const skipNextFetch = useRef(false)
 
   useEffect(() => {
     if (skipNextFetch.current) {
@@ -72,26 +68,65 @@ export default function ChequeEntry() {
     return () => { if (debounce.current) clearTimeout(debounce.current) }
   }, [tracking])
 
-  function pickSuggestion(s: Suggestion) {
-    skipNextFetch.current = true
-    setTracking(s.trackingNumber)
-    setSuggestions([]); setShowSug(false)
-    lookup(s.trackingNumber)
+  const allocSum = selected.reduce((s, r) => s + (Number(r.alloc) || 0), 0)
+  const totalNum = Number(total) || 0
+  const diff = totalNum - allocSum
+  const matches = selected.length > 0 && totalNum > 0 && Math.abs(diff) < 0.01
+
+  function syncTotal(rows: SelectedRow[]) {
+    if (!totalTouched.current) {
+      const sum = rows.reduce((s, r) => s + (Number(r.alloc) || 0), 0)
+      setTotal(sum > 0 ? sum.toFixed(2) : '')
+    }
   }
 
-  async function lookup(value?: string) {
-    const q = (value ?? tracking).trim()
+  function addRow(s: Suggestion) {
+    skipNextFetch.current = true
+    setTracking('')
+    setSuggestions([]); setShowSug(false)
+    setNotFound(false); setDone(null); setError(null)
+    setSelected((prev) => {
+      if (prev.some((r) => r.id === s.id)) return prev
+      const rows = [...prev, { ...s, alloc: s.remaining > 0 ? s.remaining.toFixed(2) : '' }]
+      syncTotal(rows)
+      return rows
+    })
+  }
+
+  function removeRow(id: string) {
+    setSelected((prev) => {
+      const rows = prev.filter((r) => r.id !== id)
+      syncTotal(rows)
+      return rows
+    })
+  }
+
+  function setAlloc(id: string, value: string) {
+    setSelected((prev) => {
+      const rows = prev.map((r) => (r.id === id ? { ...r, alloc: value } : r))
+      syncTotal(rows)
+      return rows
+    })
+  }
+
+  async function lookup() {
+    const q = tracking.trim()
     if (!q) return
     setShowSug(false)
-    setLooking(true); setFound(null); setNotFound(false); setDone(null); setError(null)
+    setLooking(true); setNotFound(false); setDone(null); setError(null)
     try {
       const res = await fetch(`/api/shipments/lookup?tracking=${encodeURIComponent(q)}`)
       const json = await res.json()
       if (json.found) {
-        setFound(json.shipment)
-        const remaining = Math.max(json.shipment.codAmount - json.shipment.paidSum, 0)
-        setAmount(remaining ? remaining.toFixed(2) : '')
-      } else setNotFound(true)
+        addRow({
+          id: json.shipment.id,
+          trackingNumber: json.shipment.trackingNumber,
+          recipientName: json.shipment.recipientName,
+          remaining: Math.max(json.shipment.codAmount - json.shipment.paidSum, 0),
+        })
+      } else {
+        setNotFound(true)
+      }
     } catch {
       setError('Lookup failed. Please try again.')
     } finally {
@@ -99,25 +134,46 @@ export default function ChequeEntry() {
     }
   }
 
+  function resetAll() {
+    setSelected([]); setBank(''); setChequeNumber(''); setTotal(''); setPaymentDate('')
+    setTracking(''); setNotFound(false); setDuplicate(null)
+    totalTouched.current = false
+  }
+
   async function submit(force = false) {
     setSaving(true); setError(null)
     if (force) setDuplicate(null)
     try {
-      const res = await fetch('/api/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackingNumber: tracking.trim(), amount: Number(amount), method: 'CHEQUE', bank, chequeNumber, paymentDate: paymentDate || undefined, force }),
-      })
+      let res: Response
+      if (selected.length > 0) {
+        res = await fetch('/api/payments/split', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bank,
+            chequeNumber,
+            paymentDate: paymentDate || undefined,
+            total: Number(total),
+            allocations: selected.map((r) => ({ trackingNumber: r.trackingNumber, amount: Number(r.alloc) })),
+            force,
+          }),
+        })
+      } else {
+        // Cheque for a shipment that isn't imported yet → recorded unmatched (Exceptions)
+        res = await fetch('/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trackingNumber: tracking.trim(), amount: Number(total), method: 'CHEQUE', bank, chequeNumber, paymentDate: paymentDate || undefined, force }),
+        })
+      }
       const json = await res.json()
       if (res.status === 409 && json.duplicate) {
         setDuplicate(json.existing)
       } else if (!res.ok) {
         setError(json.error || 'Could not save the cheque.')
       } else {
-        setDuplicate(null)
-        const statusName = json.status ? (locale === 'gr' ? STATUS_META[json.status as ShipmentStatus].labelGr : STATUS_META[json.status as ShipmentStatus].label) : null
-        setDone(statusName ? `${tr('recordCheque')} ✓  (${statusName})` : `${tr('recordCheque')} ✓`)
-        setBank(''); setChequeNumber(''); setAmount(''); setPaymentDate(''); setFound(null); setTracking('')
+        setDone(`${tr('recordCheque')} ✓`)
+        resetAll()
         router.refresh()
       }
     } catch {
@@ -127,7 +183,8 @@ export default function ChequeEntry() {
     }
   }
 
-  const remaining = found ? Math.max(found.codAmount - found.paidSum, 0) : 0
+  const showForm = selected.length > 0 || notFound
+  const canSave = selected.length > 0 ? matches && !saving : !saving && totalNum > 0
 
   return (
     <div className="panel animate-fade-up" style={{ overflow: 'visible' }}>
@@ -158,24 +215,28 @@ export default function ChequeEntry() {
             />
             {showSug && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, marginTop: 4, background: 'white', border: '1px solid #E0E5E8', borderRadius: 5, boxShadow: '0 6px 18px rgba(0,26,34,0.10)', maxHeight: 220, overflowY: 'auto' }}>
-                {suggestions.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); pickSuggestion(s) }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'white', border: 'none', borderTop: '1px solid #F2F4F6', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F9FB')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
-                  >
-                    <span style={{ fontSize: 12.5, color: '#1A2226', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#009BB4' }}>{s.trackingNumber}</span>
-                      {'  '}{s.recipientName || '—'}
-                    </span>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#B7791F', flexShrink: 0 }}>
-                      {formatEuro(s.remaining)} {tr('remaining')}
-                    </span>
-                  </button>
-                ))}
+                {suggestions.map((s) => {
+                  const already = selected.some((r) => r.id === s.id)
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={already}
+                      onMouseDown={(e) => { e.preventDefault(); if (!already) addRow(s) }}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'white', border: 'none', borderTop: '1px solid #F2F4F6', cursor: already ? 'default' : 'pointer', textAlign: 'left', fontFamily: 'inherit', opacity: already ? 0.45 : 1 }}
+                      onMouseEnter={(e) => { if (!already) e.currentTarget.style.background = '#F0F9FB' }}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+                    >
+                      <span style={{ fontSize: 12.5, color: '#1A2226', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#009BB4' }}>{s.trackingNumber}</span>
+                        {'  '}{s.recipientName || '—'}
+                      </span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: '#B7791F', flexShrink: 0 }}>
+                        {already ? tr('alreadyAdded') : `${formatEuro(s.remaining)} ${tr('remaining')}`}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -183,29 +244,58 @@ export default function ChequeEntry() {
             {looking ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} {tr('find')}
           </button>
         </div>
-        {!found && !notFound && (
-          <p style={{ fontSize: 11.5, color: '#A6AEB2', marginTop: 8 }}>{tr('chequeSearchHint')}</p>
+        {!showForm && (
+          <p style={{ fontSize: 11.5, color: '#A6AEB2', marginTop: 8 }}>{tr('chequeSearchHint2')}</p>
         )}
 
-        {notFound && (
+        {notFound && selected.length === 0 && (
           <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-start', background: 'rgba(183,121,31,0.08)', border: '1px solid rgba(183,121,31,0.25)', borderRadius: 4, padding: '10px 12px' }}>
             <AlertTriangle size={14} color="#B7791F" style={{ flexShrink: 0, marginTop: 1 }} />
             <p style={{ fontSize: 12, color: '#8A5D18' }}>{tr('chequeNotFound')}</p>
           </div>
         )}
 
-        {found && (
-          <div style={{ marginTop: 12, background: '#FAFBFC', border: '1px solid #EEF1F3', borderRadius: 5, padding: '12px 14px' }} className="animate-fade-up">
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#001A21' }}>{found.recipientName || '—'}</p>
-            <div style={{ display: 'flex', gap: 20, marginTop: 8 }}>
-              <Metric label={tr('cod')} value={formatEuro(found.codAmount)} />
-              <Metric label={tr('paidSoFar')} value={formatEuro(found.paidSum)} />
-              <Metric label={tr('remaining')} value={formatEuro(remaining)} accent={remaining > 0 ? '#B7791F' : '#2F8F5B'} />
+        {selected.length > 0 && (
+          <div style={{ marginTop: 14 }} className="animate-fade-up">
+            <p style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B', marginBottom: 6 }}>
+              {tr('selShipments')} ({selected.length})
+            </p>
+            <div style={{ border: '1px solid #EEF1F3', borderRadius: 5, overflow: 'hidden' }}>
+              {selected.map((r, i) => {
+                const over = (Number(r.alloc) || 0) > r.remaining + 0.009
+                return (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderTop: i > 0 ? '1px solid #F2F4F6' : 'none', background: i % 2 ? '#FAFBFC' : 'white' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#009BB4' }}>{r.trackingNumber}</span>
+                        <span style={{ color: '#445056' }}>{'  '}{r.recipientName || '—'}</span>
+                      </p>
+                      <p style={{ fontSize: 11, color: over ? '#B7791F' : '#A6AEB2', marginTop: 1 }}>
+                        {formatEuro(r.remaining)} {tr('remaining')}{over ? ` — ${tr('overRemaining')}` : ''}
+                      </p>
+                    </div>
+                    <input
+                      className="input-base"
+                      style={{ width: 100, height: 32, fontSize: 12.5, textAlign: 'right' }}
+                      value={r.alloc}
+                      onChange={(e) => setAlloc(r.id, e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                    />
+                    <button onClick={() => removeRow(r.id)} title={tr('removeRow')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0C7CC', padding: 4, display: 'inline-flex', flexShrink: 0 }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#DE1D1C')}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#C0C7CC')}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
+            <p style={{ fontSize: 11.5, color: '#A6AEB2', marginTop: 6 }}>{tr('addMoreHint')}</p>
           </div>
         )}
 
-        {(found || notFound) && (
+        {showForm && (
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="animate-fade-up">
             <div>
               <label className="label-base">{tr('bank')}</label>
@@ -216,15 +306,29 @@ export default function ChequeEntry() {
               <input className="input-base" value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} placeholder="E_92450477" />
             </div>
             <div>
-              <label className="label-base">{tr('amount')}</label>
-              <input className="input-base" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
+              <label className="label-base">{tr('chequeTotal')}</label>
+              <input className="input-base" value={total} onChange={(e) => { totalTouched.current = true; setTotal(e.target.value) }} inputMode="decimal" placeholder="0.00" />
             </div>
             <div>
               <label className="label-base">{tr('paymentDate')}</label>
               <input className="input-base" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
             </div>
-            <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
-              <button className="btn-primary" onClick={() => submit(false)} disabled={saving || !amount}>
+
+            {selected.length > 0 && totalNum > 0 && (
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 4, background: matches ? 'rgba(47,143,91,0.08)' : diff > 0 ? 'rgba(183,121,31,0.08)' : 'rgba(222,29,28,0.07)', border: `1px solid ${matches ? 'rgba(47,143,91,0.25)' : diff > 0 ? 'rgba(183,121,31,0.25)' : 'rgba(222,29,28,0.22)'}` }}>
+                <Scale size={14} color={matches ? '#2F8F5B' : diff > 0 ? '#B7791F' : '#DE1D1C'} style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: 12, fontWeight: 700, color: matches ? '#256D46' : diff > 0 ? '#8A5D18' : '#B91C1B' }}>
+                  {matches
+                    ? `${tr('allocOk')} — ${formatEuro(totalNum)}`
+                    : diff > 0
+                      ? `${tr('allocLeft')}: ${formatEuro(diff)}`
+                      : `${tr('allocOver')}: ${formatEuro(-diff)}`}
+                </p>
+              </div>
+            )}
+
+            <div style={{ gridColumn: '1 / -1', marginTop: 2 }}>
+              <button className="btn-primary" onClick={() => submit(false)} disabled={!canSave}>
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Receipt size={14} />} {tr('recordCheque')}
               </button>
             </div>
@@ -263,15 +367,6 @@ export default function ChequeEntry() {
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) {
-  return (
-    <div>
-      <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#A6AEB2' }}>{label}</p>
-      <p style={{ fontSize: 15, fontWeight: 700, color: accent || '#1A2226', marginTop: 2 }}>{value}</p>
     </div>
   )
 }
