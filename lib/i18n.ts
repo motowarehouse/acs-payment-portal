@@ -228,6 +228,10 @@ const D = {
   allocLeft:       { en: 'Left to allocate', gr: 'Απομένει να κατανεμηθεί' },
   allocOver:       { en: 'Over the cheque amount by', gr: 'Υπέρβαση του ποσού κατά' },
 
+  // Guide video
+  guideVideo:      { en: 'Video walkthrough', gr: 'Βίντεο παρουσίασης' },
+  guideVideoSub:   { en: 'The full daily workflow, step by step, with Greek and English captions (7 min)', gr: 'Όλη η καθημερινή ροή εργασίας, βήμα-βήμα, με ελληνικούς και αγγλικούς υπότιτλους (7 λεπτά)' },
+
   // Cheque stats
   stat_pending:     { en: 'Pending cheques', gr: 'Εκκρεμείς επιταγές' },
   stat_pending_sub: { en: 'awaiting bank clearance', gr: 'σε αναμονή εκκαθάρισης' },
