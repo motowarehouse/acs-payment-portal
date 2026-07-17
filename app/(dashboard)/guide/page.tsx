@@ -29,6 +29,11 @@ export default function GuidePage() {
           style={{ display: 'block', width: '100%', maxHeight: 620, background: '#001A22' }}
           src="/guide.mp4"
         />
+        <div style={{ padding: '10px 18px', borderTop: '1px solid #EEF1F3' }}>
+          <a href="/guide-full.mp4" target="_blank" rel="noopener" style={{ fontSize: 12, color: '#009BB4', textDecoration: 'none', fontWeight: 700 }}>
+            {tr('guideVideoFull')} →
+          </a>
+        </div>
       </div>
 
       <GuideTour />

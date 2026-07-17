@@ -230,7 +230,8 @@ const D = {
 
   // Guide video
   guideVideo:      { en: 'Video walkthrough', gr: 'Βίντεο παρουσίασης' },
-  guideVideoSub:   { en: 'The full daily workflow, step by step, with Greek and English captions (7 min)', gr: 'Όλη η καθημερινή ροή εργασίας, βήμα-βήμα, με ελληνικούς και αγγλικούς υπότιτλους (7 λεπτά)' },
+  guideVideoSub:   { en: 'The whole daily workflow in 1 minute, with Greek and English captions', gr: 'Όλη η καθημερινή ροή εργασίας σε 1 λεπτό, με ελληνικούς και αγγλικούς υπότιτλους' },
+  guideVideoFull:  { en: 'Prefer the detailed version? Watch the full 7-minute walkthrough', gr: 'Προτιμάτε περισσότερη λεπτομέρεια; Δείτε την πλήρη παρουσίαση 7 λεπτών' },
 
   // Cheque stats
   stat_pending:     { en: 'Pending cheques', gr: 'Εκκρεμείς επιταγές' },
