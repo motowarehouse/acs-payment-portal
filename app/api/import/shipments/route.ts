@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       createData.push({
         trackingNumber: row.trackingNumber,
         originBatchId: batch.id,
-        status: computeStatus(row.codAmount, row.direction, 0),
+        status: computeStatus(row.codAmount, row.direction, 0, row.deliveredAt !== null),
         ...common,
       })
     } else if (ex._count.payments > 0) {
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       const keepStatus = ex.statusManual || ex.status === 'RETURNED'
       updates.push({
         id: ex.id,
-        data: keepStatus ? common : { ...common, status: computeStatus(row.codAmount, row.direction, 0) },
+        data: keepStatus ? common : { ...common, status: computeStatus(row.codAmount, row.direction, 0, row.deliveredAt !== null) },
       })
     }
   }
@@ -120,6 +120,11 @@ export async function POST(req: Request) {
   await inChunks(updates, 25, (u) => prisma.shipment.update({ where: { id: u.id }, data: u.data }))
   // Recompute only shipments that actually have payments
   await inChunks(recomputeIds, 25, (id) => recomputeShipment(id))
+  // Catch up older delivered inbound shipments (imported before Received existed)
+  await prisma.shipment.updateMany({
+    where: { direction: 'INBOUND', status: 'NO_COD', statusManual: false, deliveredAt: { not: null } },
+    data: { status: 'RECEIVED' },
+  })
 
   const notes = duplicateTracking.length > 0 ? `Duplicate tracking numbers in file: ${duplicateTracking.join(', ')}` : null
   await prisma.importBatch.update({
