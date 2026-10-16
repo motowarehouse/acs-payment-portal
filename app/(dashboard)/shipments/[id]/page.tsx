@@ -78,6 +78,7 @@ export default async function ShipmentDetail({ params }: { params: { id: string 
         trackingNumber={shipment.trackingNumber}
         status={shipment.status}
         statusManual={shipment.statusManual}
+        direction={shipment.direction}
         codAmount={toNumber(shipment.codAmount)}
         paidSum={paid}
         notes={shipment.notes}

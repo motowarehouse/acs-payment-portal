@@ -25,7 +25,7 @@ export async function recomputeShipment(shipmentId: string): Promise<ShipmentSta
   const paidSum = shipment.payments
     .filter((p) => p.chequeStatus !== 'BOUNCED')
     .reduce((sum, p) => sum + toNumber(p.amount), 0)
-  const next = computeStatus(toNumber(shipment.codAmount), shipment.direction, paidSum)
+  const next = computeStatus(toNumber(shipment.codAmount), shipment.direction, paidSum, shipment.deliveredAt !== null)
 
   if (next !== shipment.status) {
     await prisma.shipment.update({
