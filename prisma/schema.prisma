@@ -28,6 +28,7 @@ enum ShipmentStatus {
   PARTIALLY_PAID // some payments recorded, sum < COD
   PAID           // payments sum == COD
   RETURNED       // package not collected, returned to us
+  RECEIVED       // inbound package collected by us (set manually)
   EXCEPTION      // overpaid, or otherwise needs review
   NO_COD         // COD == 0 or inbound → nothing to reconcile
 }

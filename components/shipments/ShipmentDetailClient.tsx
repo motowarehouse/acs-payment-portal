@@ -7,7 +7,7 @@ import { formatEuro, formatDate, formatDateTime } from '@/lib/utils'
 import { STATUS_META, PAYMENT_METHOD_META } from '@/lib/constants'
 import { MethodBadge } from '@/components/ui/Badges'
 import { useT, useLocale } from '@/components/i18n/LocaleProvider'
-import type { ShipmentStatus, PaymentMethod, ChequeStatus } from '@prisma/client'
+import type { ShipmentStatus, PaymentMethod, ChequeStatus, Direction } from '@prisma/client'
 
 interface PaymentDTO {
   id: string
@@ -34,6 +34,7 @@ interface Props {
   trackingNumber: string
   status: ShipmentStatus
   statusManual: boolean
+  direction: Direction
   codAmount: number
   paidSum: number
   notes: string | null
@@ -48,6 +49,8 @@ const CHEQUE_META: Record<ChequeStatus, { color: string; bg: string; en: string;
 }
 
 const SELECTABLE: ShipmentStatus[] = ['AWAITING', 'PARTIALLY_PAID', 'PAID', 'RETURNED', 'EXCEPTION', 'NO_COD']
+// Inbound packages (we are the recipient) can also be marked as received
+const SELECTABLE_INBOUND: ShipmentStatus[] = ['RECEIVED', ...SELECTABLE]
 
 export default function ShipmentDetailClient(props: Props) {
   const router = useRouter()
@@ -214,7 +217,7 @@ export default function ShipmentDetailClient(props: Props) {
         <div className="panel" style={{ padding: 16 }}>
           <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A939B', marginBottom: 10 }}>{tr('status')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {SELECTABLE.map((s) => {
+            {(props.direction === 'INBOUND' || props.status === 'RECEIVED' ? SELECTABLE_INBOUND : SELECTABLE).map((s) => {
               const active = props.status === s
               const m = STATUS_META[s]
               return (

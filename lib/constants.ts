@@ -9,6 +9,7 @@ export const STATUS_META: Record<
   PARTIALLY_PAID: { label: 'Partially paid',  labelGr: 'Μερική πληρωμή', color: '#0284A8', bg: 'rgba(10,185,213,0.12)' },
   PAID:           { label: 'Paid',            labelGr: 'Πληρώθηκε',      color: '#2F8F5B', bg: 'rgba(47,143,91,0.12)' },
   RETURNED:       { label: 'Returned',        labelGr: 'Επιστροφή',      color: '#6B7280', bg: 'rgba(107,114,128,0.12)' },
+  RECEIVED:       { label: 'Received',        labelGr: 'Παραλήφθηκε',    color: '#4F46E5', bg: 'rgba(79,70,229,0.10)' },
   EXCEPTION:      { label: 'Exception',       labelGr: 'Προς έλεγχο',    color: '#DE1D1C', bg: 'rgba(222,29,28,0.10)' },
   NO_COD:         { label: 'No COD',          labelGr: 'Χωρίς αντικαταβολή', color: '#8A939B', bg: 'rgba(138,147,155,0.10)' },
 }
